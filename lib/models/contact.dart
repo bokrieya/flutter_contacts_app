@@ -1,5 +1,5 @@
 class Contact {
-  final int? id; // id is optional because it will be generated automatically by the database
+  final int? id;
   final String name;
   final String pseudo;
   final String phoneNumber;

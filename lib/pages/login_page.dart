@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'home.dart'; // Make sure you import the HomePage class
+import '../pages/sign_up.dart'; // Import your SignUpPage class
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -16,10 +18,30 @@ class _LoginPageState extends State<LoginPage> {
   bool rememberUser = false;
   String? errorMessage; // To store error messages for username
   String? passwordErrorMessage; // To store error messages for password
+  bool _isPasswordVisible = false; // Track password visibility
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData(); // Load user data on init
+  }
+
+  Future<void> _loadUserData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? savedUsername = prefs.getString('username');
+    String? savedPassword = prefs.getString('password');
+    bool? savedRememberUser = prefs.getBool('rememberUser');
+
+    if (savedRememberUser == true) {
+      emailController.text = savedUsername ?? '';
+      passwordController.text = savedPassword ?? '';
+      rememberUser = true;
+    }
+  }
 
   // Function to validate and navigate
-  void _login() {
-    setState(() {
+  void _login() async {
+    setState(() async {
       // Clear the error messages
       errorMessage = null;
       passwordErrorMessage = null;
@@ -32,8 +54,22 @@ class _LoginPageState extends State<LoginPage> {
       else if (passwordController.text.isEmpty) {
         passwordErrorMessage = "Password cannot be empty";
       } else {
+        // Save user data if rememberUser is checked
+        if (rememberUser) {
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          prefs.setString('username', emailController.text);
+          prefs.setString('password', passwordController.text);
+          prefs.setBool('rememberUser', true);
+        } else {
+          // Clear saved user data if rememberUser is unchecked
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          prefs.remove('username');
+          prefs.remove('password');
+          prefs.setBool('rememberUser', false);
+        }
+
         // Navigate to Home page if validation is successful
-        Navigator.push(
+        Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => HomePage()),
         );
@@ -45,20 +81,27 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     myColor = Theme.of(context).primaryColor;
     mediaSize = MediaQuery.of(context).size;
-    return Container(
-      decoration: BoxDecoration(
+    return WillPopScope(
+      onWillPop: () async {
+        return true; // Allow back navigation
+      },
+      child: Container(
+        decoration: BoxDecoration(
           color: myColor,
           image: DecorationImage(
-              image: AssetImage("assets/images/bg.jpeg"),
-              fit: BoxFit.cover,
-              colorFilter: ColorFilter.mode(
-                  myColor.withOpacity(0.2), BlendMode.dstATop))),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Stack(children: [
-          Positioned(top: 80, child: _buildTop()),
-          Positioned(bottom: 0, child: _buildBottom())
-        ]),
+            image: const AssetImage("assets/images/bg.jpeg"),
+            fit: BoxFit.cover,
+            colorFilter:
+                ColorFilter.mode(myColor.withOpacity(0.2), BlendMode.dstATop),
+          ),
+        ),
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Stack(children: [
+            Positioned(top: 80, child: _buildTop()),
+            Positioned(bottom: 0, child: _buildBottom()),
+          ]),
+        ),
       ),
     );
   }
@@ -77,10 +120,11 @@ class _LoginPageState extends State<LoginPage> {
       width: mediaSize.width,
       child: Card(
         shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30),
-          topRight: Radius.circular(30),
-        )),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(30),
+            topRight: Radius.circular(30),
+          ),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(32.0),
           child: _buildForm(),
@@ -120,7 +164,7 @@ class _LoginPageState extends State<LoginPage> {
         const SizedBox(height: 20),
         _buildLoginButton(), // Updated login button with validation
         const SizedBox(height: 20),
-        //_buildOtherLogin(),
+        _buildSignUpLink(), // Add sign-up link/button
       ],
     );
   }
@@ -133,13 +177,24 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildInputField(TextEditingController controller,
-      {isPassword = false}) {
+      {bool isPassword = false}) {
     return TextField(
       controller: controller,
       decoration: InputDecoration(
-        suffixIcon: isPassword ? Icon(Icons.remove_red_eye) : Icon(Icons.done),
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _isPasswordVisible = !_isPasswordVisible;
+                  });
+                },
+              )
+            : const Icon(Icons.done),
       ),
-      obscureText: isPassword,
+      obscureText: isPassword ? !_isPasswordVisible : false,
     );
   }
 
@@ -150,17 +205,20 @@ class _LoginPageState extends State<LoginPage> {
         Row(
           children: [
             Checkbox(
-                value: rememberUser,
-                onChanged: (value) {
-                  setState(() {
-                    rememberUser = value!;
-                  });
-                }),
+              value: rememberUser,
+              onChanged: (value) {
+                setState(() {
+                  rememberUser = value!;
+                });
+              },
+            ),
             _buildGreyText("Stay Connected"),
           ],
         ),
         TextButton(
-            onPressed: () {}, child: _buildGreyText("I forgot my password"))
+          onPressed: () {},
+          child: _buildGreyText("I forgot my password"),
+        ),
       ],
     );
   }
@@ -202,22 +260,29 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  /*Widget _buildOtherLogin() {
+  // Add Sign Up button
+  Widget _buildSignUpLink() {
     return Center(
-      child: Column(
-        children: [
-          _buildGreyText("OR Create new account"),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              Tab(icon: Image.asset("assets/images/f.jpeg")),
-              Tab(icon: Image.asset("assets/images/twi.png")),
-              Tab(icon: Image.asset("assets/images/git.png")),
-            ],
-          )
-        ],
+      child: TextButton(
+        onPressed: () async {
+          // Navigate to SignUpPage and wait for result
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => SignUpPage()),
+          );
+
+          // Check if registration was successful (i.e., result is true)
+          if (result == true) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text('Registration successful!'),
+            ));
+          }
+        },
+        child: Text(
+          "Don't have an account? Sign Up",
+          style: TextStyle(color: myColor),
+        ),
       ),
     );
-  }*/
+  }
 }

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 import '../db/database_helper.dart';
 import '../models/contact.dart';
+import 'login_page.dart'; // Import your LoginPage here
 
 class HomePage extends StatefulWidget {
   @override
@@ -12,10 +15,10 @@ class _HomePageState extends State<HomePage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _pseudoController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _searchController = TextEditingController(); 
+  final TextEditingController _searchController = TextEditingController();
 
   List<Contact> _contacts = [];
-  List<Contact> _filteredContacts = []; 
+  List<Contact> _filteredContacts = [];
   bool _isAddingContact = false;
 
   @override
@@ -28,16 +31,19 @@ class _HomePageState extends State<HomePage> {
     List<Contact> contacts = await _dbHelper.getContacts();
 
     // Sort contacts alphabetically by name
-    contacts.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    contacts
+        .sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
     setState(() {
       _contacts = contacts;
-      _filteredContacts = contacts; // Initialize filtered list with sorted contacts
+      _filteredContacts =
+          contacts; // Initialize filtered list with sorted contacts
     });
   }
 
   Future<void> _addContact() async {
     final contact = Contact(
+      id: null,
       name: _nameController.text,
       pseudo: _pseudoController.text,
       phoneNumber: _phoneController.text,
@@ -48,7 +54,7 @@ class _HomePageState extends State<HomePage> {
       _nameController.clear();
       _pseudoController.clear();
       _phoneController.clear();
-      _loadContacts(); 
+      _loadContacts();
       setState(() {
         _isAddingContact = false;
       });
@@ -69,13 +75,13 @@ class _HomePageState extends State<HomePage> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); 
+                Navigator.of(context).pop();
               },
               child: Text('Cancel'),
             ),
             TextButton(
               onPressed: () async {
-                Navigator.of(context).pop(); 
+                Navigator.of(context).pop();
                 await _deleteContact(id);
               },
               child: Text('Delete'),
@@ -103,7 +109,7 @@ class _HomePageState extends State<HomePage> {
   void _filterContacts(String query) {
     List<Contact> filteredList = _contacts.where((contact) {
       return contact.name.toLowerCase().contains(query.toLowerCase()) ||
-             contact.phoneNumber.contains(query);
+          contact.phoneNumber.contains(query);
     }).toList();
 
     setState(() {
@@ -111,11 +117,29 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  // Method to initiate a phone call
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    // Direct phone call (requires permission on Android)
+    bool? res = await FlutterPhoneDirectCaller.callNumber(phoneNumber);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Contact List'),
+        leading: IconButton(
+          // Back button to navigate to the login page
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                  builder: (context) =>
+                      LoginPage()), // Navigate to the login page
+            );
+          },
+        ),
         actions: [
           IconButton(
             icon: Icon(Icons.add),
@@ -154,7 +178,7 @@ class _HomePageState extends State<HomePage> {
                       IconButton(
                         icon: Icon(Icons.call),
                         onPressed: () {
-                          // Add call logic
+                          _makePhoneCall(_filteredContacts[index].phoneNumber);
                         },
                       ),
                       IconButton(
@@ -163,7 +187,8 @@ class _HomePageState extends State<HomePage> {
                       ),
                       IconButton(
                         icon: Icon(Icons.delete),
-                        onPressed: () => _confirmDeleteContact(_filteredContacts[index].id!),
+                        onPressed: () =>
+                            _confirmDeleteContact(_filteredContacts[index].id!),
                       ),
                     ],
                   ),
@@ -171,7 +196,7 @@ class _HomePageState extends State<HomePage> {
               },
             ),
           ),
-          if (_isAddingContact) _buildAddContactForm(), 
+          if (_isAddingContact) _buildAddContactForm(),
         ],
       ),
     );
@@ -191,6 +216,7 @@ class _HomePageState extends State<HomePage> {
             decoration: InputDecoration(labelText: 'Pseudo'),
           ),
           TextField(
+            keyboardType: TextInputType.number,
             controller: _phoneController,
             decoration: InputDecoration(labelText: 'Phone Number'),
           ),

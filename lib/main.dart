@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'pages/login_page.dart';
+import 'pages/splash_screen.dart'; // Import the splash screen
 
 void main() {
   runApp(const MyApp());
@@ -14,7 +15,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(primarySwatch: Colors.deepPurple),
-      home: SafeArea(child: LoginPage()),
+      home: SplashScreen(), // Start with the splash screen
       debugShowCheckedModeBanner: false,
     );
   }
