@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:your_project_name/pages/login_page.dart';
 import './home.dart'; // Import your home page or main screen here
 
 class SplashScreen extends StatefulWidget {
@@ -6,7 +7,8 @@ class SplashScreen extends StatefulWidget {
   _SplashScreenState createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with TickerProviderStateMixin {
   late AnimationController _controller;
 
   @override
@@ -33,7 +35,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     await Future.delayed(const Duration(seconds: 5));
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => HomePage()),
+      MaterialPageRoute(builder: (context) => LoginPage()),
     );
   }
 

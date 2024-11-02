@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../db/database_helper.dart';
 import 'home.dart'; // Make sure you import the HomePage class
 import '../pages/sign_up.dart'; // Import your SignUpPage class
 
@@ -39,42 +40,101 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  // Function to validate and navigate
-  void _login() async {
-    setState(() async {
-      // Clear the error messages
-      errorMessage = null;
-      passwordErrorMessage = null;
+  // void _login() async {
+  //   setState(() {
+  //     errorMessage = null;
+  //     passwordErrorMessage = null;
+  //   });
 
-      // Validate if username (emailController) is empty
-      if (emailController.text.isEmpty) {
-        errorMessage = "Username cannot be empty";
-      }
-      // Validate if password is empty
-      else if (passwordController.text.isEmpty) {
-        passwordErrorMessage = "Password cannot be empty";
-      } else {
-        // Save user data if rememberUser is checked
-        if (rememberUser) {
-          SharedPreferences prefs = await SharedPreferences.getInstance();
-          prefs.setString('username', emailController.text);
-          prefs.setString('password', passwordController.text);
-          prefs.setBool('rememberUser', true);
-        } else {
-          // Clear saved user data if rememberUser is unchecked
-          SharedPreferences prefs = await SharedPreferences.getInstance();
-          prefs.remove('username');
-          prefs.remove('password');
-          prefs.setBool('rememberUser', false);
-        }
+  //   // Validate if username (emailController) is empty
+  //   if (emailController.text.isEmpty) {
+  //     setState(() {
+  //       errorMessage = "Username cannot be empty";
+  //     });
+  //   }
+  //   // Validate if password is empty
+  //   else if (passwordController.text.isEmpty) {
+  //     setState(() {
+  //       passwordErrorMessage = "Password cannot be empty";
+  //     });
+  //   } else {
+  //     // Save user data if rememberUser is checked
+  //     if (rememberUser) {
+  //       SharedPreferences prefs = await SharedPreferences.getInstance();
+  //       prefs.setString('username', emailController.text);
+  //       prefs.setString('password', passwordController.text);
+  //       prefs.setBool('rememberUser', true);
+  //     } else {
+  //       // Clear saved user data if rememberUser is unchecked
+  //       SharedPreferences prefs = await SharedPreferences.getInstance();
+  //       prefs.remove('username');
+  //       prefs.remove('password');
+  //       prefs.setBool('rememberUser', false);
+  //     }
 
-        // Navigate to Home page if validation is successful
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => HomePage()),
-        );
-      }
+  //     // Navigate to Home page if validation is successful
+  //     Navigator.pushReplacement(
+  //       context,
+  //       MaterialPageRoute(builder: (context) => HomePage()),
+  //     );
+  //   }
+  // }
+
+  Future<bool> loginUser(String email, String password) async {
+    try {
+      return DatabaseHelper.instance.authenticateUser(email, password);
+    } catch (e) {
+      print("Error during login: $e");
+      return false;
+    }
+  }
+
+  bool isValidEmail(String email) {
+    final emailRegExp = RegExp(r'^[\w-.]+@([\w-]+.)+[\w-]{2,4}$');
+    return emailRegExp.hasMatch(email);
+  }
+
+  String? validateEmail(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Email is required';
+    }
+    if (!isValidEmail(value)) {
+      return 'Enter a valid email address';
+    }
+    return null;
+  }
+
+  String? validatePassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Password is required';
+    }
+    if (value.length < 6) {
+      return 'Password must be at least 6 characters long';
+    }
+    return null;
+  }
+
+  Future<void> validateForm() async {
+    setState(() {
+      errorMessage = validateEmail(emailController.text);
+      passwordErrorMessage = validatePassword(passwordController.text);
     });
+
+    if (errorMessage == null && passwordErrorMessage == null) {
+      // Form is valid, proceed with login
+      bool loginSuccess =
+          await loginUser(emailController.text, passwordController.text);
+      if (loginSuccess) {
+        DatabaseHelper.instance
+            .setLoggedInUser(emailController.text, rememberUser);
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (context) => HomePage()));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            backgroundColor: Colors.red,
+            content: Text("Error logging in. Please check your credentials.")));
+      }
+    }
   }
 
   @override
@@ -144,7 +204,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
         _buildGreyText("Please login with your information"),
         const SizedBox(height: 60),
-        _buildGreyText("Username"),
+        _buildGreyText("Email"),
         _buildInputField(emailController),
         if (errorMessage != null)
           Text(
@@ -228,33 +288,19 @@ class _LoginPageState extends State<LoginPage> {
     return Column(
       children: [
         const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            ElevatedButton(
-              onPressed: _login, // Calls the validation and login logic
-              style: ElevatedButton.styleFrom(
-                shape: const StadiumBorder(),
-                elevation: 20,
-                shadowColor: myColor,
-                minimumSize: const Size(150, 60),
-              ),
-              child: const Text("LOGIN"),
+        Center(
+          child: ElevatedButton(
+            onPressed: () async {
+              await validateForm();
+            }, // Calls the validation and login logic
+            style: ElevatedButton.styleFrom(
+              shape: const StadiumBorder(),
+              elevation: 20,
+              //shadowColor: myColor,
+              minimumSize: const Size(150, 60),
             ),
-            ElevatedButton(
-              onPressed: () {
-                debugPrint("Quit button pressed");
-                // Add quit logic here (e.g., exit the app, navigate to another page, etc.)
-              },
-              style: ElevatedButton.styleFrom(
-                shape: const StadiumBorder(),
-                elevation: 20,
-                shadowColor: myColor,
-                minimumSize: const Size(150, 60),
-              ),
-              child: const Text("QUIT"),
-            ),
-          ],
+            child: const Text("LOGIN"),
+          ),
         ),
       ],
     );

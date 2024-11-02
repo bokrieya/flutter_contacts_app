@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
+import 'db/database_helper.dart';
 import 'pages/login_page.dart';
-import 'pages/splash_screen.dart'; // Import the splash screen
+import 'pages/splash_screen.dart';
 
-void main() {
+void main() async {
+   WidgetsFlutterBinding.ensureInitialized();
+   try {
+    await DatabaseHelper.instance.initializeDatabase();
+  } catch (e) {
+    print("Error during database initialization: $e");
+  }
+  
   runApp(const MyApp());
 }
 

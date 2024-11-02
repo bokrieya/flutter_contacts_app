@@ -1,34 +1,37 @@
 class User {
-  final String username;
-  final String password;
-  final String address; // New attribute for address
-  final String birthday; // New attribute for birthday
+  int? id;
+  String email;
+  String password;
+  String address;
+  String birthday;
 
   User({
-    required this.username,
+    this.id,
+    required this.email,
     required this.password,
-    required this.address, // Include the new attribute
-    required this.birthday, 
- 
+    required this.address,
+    required this.birthday,
   });
 
-  // Convert a User into a Map for database insertion
+  // Convert a User object into a Map object to store in the database
   Map<String, dynamic> toMap() {
     return {
-      'username': username,
+      'id': id,
+      'email': email,
       'password': password,
-      'address': address, // Add to map
-      'birthday': birthday, // Add to map
+      'address': address,
+      'birthday': birthday,
     };
   }
 
-  // Create a User from a Map (used when fetching from the database)
+  // Convert a Map object into a User object
   factory User.fromMap(Map<String, dynamic> map) {
     return User(
-      username: map['username'],
+      id: map['id'],
+      email: map['email'],
       password: map['password'],
-      address: map['address'], 
-      birthday: map['birthday'], 
+      address: map['address'],
+      birthday: map['birthday'],
     );
   }
-}  
+}

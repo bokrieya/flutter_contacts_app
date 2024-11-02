@@ -11,7 +11,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final DatabaseHelper _dbHelper = DatabaseHelper();
+  final _dbHelper = DatabaseHelper.instance;
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _pseudoController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
@@ -20,11 +20,32 @@ class _HomePageState extends State<HomePage> {
   List<Contact> _contacts = [];
   List<Contact> _filteredContacts = [];
   bool _isAddingContact = false;
+  String? _loggedInUserEmail;
+  int? _loggedInUserId;
 
   @override
   void initState() {
     super.initState();
+    _getLoggedInUser();
     _loadContacts();
+  }
+
+  Future<void> _getLoggedInUser() async {
+    _loggedInUserEmail = await _dbHelper.getLoggedInUser();
+    if (_loggedInUserEmail != null) {
+      // Fetch the user ID associated with the logged-in user
+      final user = _loggedInUserEmail;
+      if (user != null) {
+        
+        _loadContacts(); // Load contacts after getting userId
+      }
+    } else {
+      // If no user is logged in, redirect to login page
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => LoginPage()),
+      );
+    }
   }
 
   Future<void> _loadContacts() async {
@@ -45,7 +66,7 @@ class _HomePageState extends State<HomePage> {
     final contact = Contact(
       id: null,
       name: _nameController.text,
-      pseudo: _pseudoController.text,
+      pseudoName: _pseudoController.text,
       phoneNumber: _phoneController.text,
     );
 
@@ -99,7 +120,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _editContact(Contact contact) async {
     _nameController.text = contact.name;
-    _pseudoController.text = contact.pseudo;
+    _pseudoController.text = contact.pseudoName;
     _phoneController.text = contact.phoneNumber;
     setState(() {
       _isAddingContact = true;
@@ -127,6 +148,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: Text('Contact List'),
         leading: IconButton(
           // Back button to navigate to the login page
@@ -221,7 +243,9 @@ class _HomePageState extends State<HomePage> {
             decoration: InputDecoration(labelText: 'Phone Number'),
           ),
           ElevatedButton(
-            onPressed: _addContact,
+            onPressed: () {
+              _addContact();
+            },
             child: Text('Save Contact'),
           ),
         ],
